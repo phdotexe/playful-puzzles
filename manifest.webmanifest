@@ -1,0 +1,1 @@
+{"name":"Quiz App","short_name":"Quiz","start_url":"/playful-puzzles/","display":"standalone","background_color":"#ffffff","lang":"en","scope":"/playful-puzzles/","description":"A Progressive Web App for quizzes","theme_color":"#9b87f5","icons":[{"src":"/icon-192.png","sizes":"192x192","type":"image/png"},{"src":"/icon-512.png","sizes":"512x512","type":"image/png"}]}
