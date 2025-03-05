@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { toast } from "@/components/ui/use-toast";
 import { useTheme } from "@/components/ThemeProvider";
 import * as XLSX from 'xlsx';
 import JSZip from 'jszip';
+import { saveQBanksToStorage } from "@/data/questions";
 import {
   Table,
   TableBody,
@@ -19,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import MediaSelector from "./MediaSelector";
+import { updateQuestionMetrics, initializeMetrics } from "@/utils/metricsUtils";
 
 interface QuestionLibraryProps {
   qbanks: QBank[];
@@ -56,6 +58,10 @@ const QuestionLibrary = ({ qbanks }: QuestionLibraryProps) => {
   const [selectedFilterTags, setSelectedFilterTags] = useState<string[]>([]);
   const [selectedQuestions, setSelectedQuestions] = useState<Question[]>([]);
   const [formatSelection, setFormatSelection] = useState({ start: 0, end: 0 });
+
+  useEffect(() => {
+    initializeMetrics();
+  }, []);
 
   const existingTags = Array.from(new Set(
     qbanks.flatMap(qbank => qbank.questions.flatMap(q => q.tags || []))
@@ -130,6 +136,10 @@ const QuestionLibrary = ({ qbanks }: QuestionLibraryProps) => {
       qbank.questions.push({ ...question });
     });
 
+    saveQBanksToStorage();
+    
+    updateQuestionMetrics(question.id, 'unused', false);
+    
     setIsOpen(false);
     setNewQuestion({
       question: "",
@@ -187,6 +197,8 @@ const QuestionLibrary = ({ qbanks }: QuestionLibraryProps) => {
         } as Question;
       }
     });
+
+    saveQBanksToStorage();
 
     setIsOpen(false);
     setIsEditMode(false);
@@ -318,6 +330,9 @@ const QuestionLibrary = ({ qbanks }: QuestionLibraryProps) => {
 
             return newQuestion;
           });
+
+        saveQBanksToStorage();
+        console.log('Imported questions and saved qbanks:', qbanks.length);
 
         toast({
           title: "Success",
@@ -456,6 +471,24 @@ const QuestionLibrary = ({ qbanks }: QuestionLibraryProps) => {
         variant: "destructive"
       });
     }
+  };
+
+  const handleDeleteQuestion = (questionId: number) => {
+    qbanks.forEach(qbank => {
+      const index = qbank.questions.findIndex(q => q.id === questionId);
+      if (index !== -1) {
+        qbank.questions.splice(index, 1);
+      }
+    });
+    
+    saveQBanksToStorage();
+    
+    initializeMetrics();
+    
+    toast({
+      title: "Success",
+      description: "Question deleted successfully",
+    });
   };
 
   return (
@@ -820,18 +853,7 @@ const QuestionLibrary = ({ qbanks }: QuestionLibraryProps) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => {
-                        qbanks.forEach(qbank => {
-                          const index = qbank.questions.findIndex(q => q.id === question.id);
-                          if (index !== -1) {
-                            qbank.questions.splice(index, 1);
-                          }
-                        });
-                        toast({
-                          title: "Success",
-                          description: "Question deleted successfully",
-                        });
-                      }}
+                      onClick={() => handleDeleteQuestion(question.id)}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

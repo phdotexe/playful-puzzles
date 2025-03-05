@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,19 +10,44 @@ import History from "./pages/History";
 import QBanks from "./pages/QBanks";
 import SelectQBank from "./pages/SelectQBank";
 import NotFound from "./pages/NotFound";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { QuizHistory, QBank } from "./types/quiz";
-import { qbanks } from "./data/questions";
+import { qbanks, saveQBanksToStorage } from "./data/questions";
 import { toast } from "@/components/ui/use-toast";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import QuestionLibrary from "@/components/qbanks/QuestionLibrary";
 import MediaLibrary from "@/components/qbanks/MediaLibrary";
+import { useMetricsInit } from './hooks/use-metrics-init';
 
 const queryClient = new QueryClient();
 
 const App = () => {
   const [quizHistory, setQuizHistory] = useState<QuizHistory[]>([]);
   const [inQuiz, setInQuiz] = useState(false);
+  
+  // Initialize metrics system on app load
+  useMetricsInit();
+
+  useEffect(() => {
+    // Load quiz history from localStorage
+    try {
+      const savedHistory = localStorage.getItem('quizHistory');
+      if (savedHistory) {
+        setQuizHistory(JSON.parse(savedHistory));
+      }
+    } catch (error) {
+      console.error('Error loading quiz history:', error);
+    }
+  }, []);
+
+  // Save quiz history to localStorage whenever it changes
+  useEffect(() => {
+    try {
+      localStorage.setItem('quizHistory', JSON.stringify(quizHistory));
+    } catch (error) {
+      console.error('Error saving quiz history:', error);
+    }
+  }, [quizHistory]);
 
   const handleQuizComplete = (history: QuizHistory) => {
     // Update quiz history
@@ -51,6 +75,7 @@ const App = () => {
       
       // Save updated qbank to localStorage
       localStorage.setItem('selectedQBank', JSON.stringify(selectedQBank));
+      saveQBanksToStorage(); // Save qbanks to localStorage as well
     }
 
     toast({
@@ -72,8 +97,10 @@ const App = () => {
         question.isFlagged = false;
       });
     });
+    saveQBanksToStorage(); // Save the reset state
     localStorage.removeItem('selectedQBank');
   };
+  
   const handleQuizEnd = () => setInQuiz(false);
 
   const handleClearHistory = () => {
@@ -85,6 +112,7 @@ const App = () => {
         question.isFlagged = false;
       });
     });
+    saveQBanksToStorage(); // Save the reset state
     // Clear localStorage
     localStorage.removeItem('selectedQBank');
   };
